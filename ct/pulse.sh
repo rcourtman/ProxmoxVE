@@ -41,7 +41,7 @@ function update_script() {
     mkdir -p /opt/pulse-proxmox
     rm -rf /opt/pulse-proxmox/*
     curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/v${RELEASE}/pulse-v${RELEASE}.tar.gz" -o "$temp_file"
-    tar zxf "$temp_file" --strip-components=1 -C /opt/pulse-proxmox
+    tar zxf "$temp_file" --strip-components=1 -C /opt/pulse-proxmox 2>/dev/null
     if [[ -f /tmp/.env.backup.pulse ]]; then
       mv /tmp/.env.backup.pulse /opt/pulse-proxmox/.env
     fi

@@ -34,30 +34,14 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/lates
 temp_file=$(mktemp)
 mkdir -p /opt/pulse-proxmox
 curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/v${RELEASE}/pulse-v${RELEASE}.tar.gz" -o "$temp_file"
-tar zxf "$temp_file" --strip-components=1 -C /opt/pulse-proxmox
+tar zxf "$temp_file" --strip-components=1 -C /opt/pulse-proxmox 2>/dev/null
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Installed Pulse"
-
-read -rp "${TAB3}Proxmox Host (z. B. https://proxmox.example.com:8006): " PROXMOX_HOST
-read -rp "${TAB3}Proxmox Token ID (z. B. user@pam!mytoken): " PROXMOX_TOKEN_ID
-read -rp "${TAB3}Proxmox Token Secret: " PROXMOX_TOKEN_SECRET
-read -rp "${TAB3}Port (default: 7655): " PORT
-PORT="${PORT:-7655}"
-
-msg_info "Creating .env file"
-cat <<EOF >/opt/pulse-proxmox/.env
-PROXMOX_HOST=${PROXMOX_HOST}
-PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
-PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
-PORT=${PORT}
-EOF
-msg_ok "Created .env file"
+msg_ok "Installed Pulse (includes detailed .env.example)"
 
 msg_info "Setting permissions for /opt/pulse-proxmox..."
 chown -R pulse:pulse "/opt/pulse-proxmox"
 find "/opt/pulse-proxmox" -type d -exec chmod 755 {} \;
 find "/opt/pulse-proxmox" -type f -exec chmod 644 {} \;
-chmod 600 /opt/pulse-proxmox/.env
 msg_ok "Set permissions."
 
 msg_info "Creating Service"
@@ -71,7 +55,7 @@ Type=simple
 User=pulse
 Group=pulse
 WorkingDirectory=/opt/pulse-proxmox
-EnvironmentFile=/opt/pulse-proxmox/.env
+EnvironmentFile=-/opt/pulse-proxmox/.env
 ExecStart=/usr/bin/npm run start
 Restart=on-failure
 RestartSec=5
@@ -81,11 +65,18 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now pulse-monitor
+systemctl enable -q pulse-monitor
 msg_ok "Created Service"
 
 motd_ssh
 customize
+
+echo -e "\n${INFO}${YW}Pulse Configuration${CL}"
+echo -e "${INFO}${BL}To configure Pulse, please:${CL}"
+echo -e "${TAB}1. Copy the example configuration: ${YW}cp /opt/pulse-proxmox/.env.example /opt/pulse-proxmox/.env${CL}"
+echo -e "${TAB}2. Edit the configuration file: ${YW}nano /opt/pulse-proxmox/.env${CL}"
+echo -e "${TAB}3. Start the service: ${YW}systemctl start pulse-monitor${CL}"
+echo -e "${TAB}4. Check service status: ${YW}systemctl status pulse-monitor${CL}\n"
 
 msg_info "Cleaning up"
 rm -f "$temp_file"
