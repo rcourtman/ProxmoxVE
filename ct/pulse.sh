@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: rcourtman
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -27,10 +27,14 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+  if [[ -d /opt/pulse-monitor ]]; then
+  msg_error "An old installation was detected. Please recreate the LXC from scratch (https://github.com/community-scripts/ProxmoxVE/pull/4848)"
+  exit 1
+  fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping ${APP}"
-    systemctl stop pulse-monitor
+    systemctl stop pulse
     msg_ok "Stopped ${APP}"
 
     msg_info "Updating Pulse"
@@ -49,7 +53,7 @@ function update_script() {
     msg_ok "Set permissions."
 
     msg_info "Starting ${APP}"
-    systemctl start pulse-monitor
+    systemctl start pulse
     msg_ok "Started ${APP}"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}."
