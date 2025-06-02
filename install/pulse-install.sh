@@ -17,7 +17,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   diffutils
-msg_ok "Installed Core Dependencies"
+msg_ok "Installed Dependencies"
 
 msg_info "Creating dedicated user pulse..."
 if useradd -r -m -d /opt/pulse-home -s /bin/bash pulse; then
@@ -46,7 +46,7 @@ find "/opt/pulse" -type f -exec chmod 644 {} \;
 msg_ok "Set permissions."
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/pulse-monitor.service
+cat <<EOF >/etc/systemd/system/pulse.service
 [Unit]
 Description=Pulse Monitoring Application
 After=network.target
@@ -66,12 +66,11 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now pulse-monitor
+systemctl enable -q --now pulse
 msg_ok "Created Service"
 
 motd_ssh
 customize
-
 
 msg_info "Cleaning up"
 rm -f "$temp_file"
