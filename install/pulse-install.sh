@@ -72,6 +72,11 @@ msg_ok "Created Service"
 motd_ssh
 customize
 
+msg_info "Installation Complete"
+IP=$(hostname -I | awk '{print $1}')
+echo -e "🌐 Access Pulse: http://${IP}:7655"
+msg_ok "Pulse is ready"
+
 msg_info "Cleaning up"
 rm -f "$temp_file"
 $STD apt-get -y autoremove
