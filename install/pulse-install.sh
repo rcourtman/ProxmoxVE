@@ -20,47 +20,30 @@ $STD apt-get install -y \
   policykit-1
 msg_ok "Installed Dependencies"
 
-msg_info "Creating dedicated user pulse..."
+msg_info "Creating User"
 if useradd -r -m -d /opt/pulse-home -s /bin/bash pulse; then
-  msg_ok "User created."
+  msg_ok "Created User"
 else
-  msg_error "User creation failed."
+  msg_error "User creation failed"
   exit 1
 fi
 
-# Get latest release info
-msg_info "Checking for latest Pulse release"
+msg_info "Installing Pulse"
 RELEASE_INFO=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest)
 LATEST_VERSION=$(echo "$RELEASE_INFO" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
-if [ -z "$LATEST_VERSION" ]; then
-  msg_error "Failed to get latest release info"
-  exit 1
-fi
-
-msg_ok "Latest version: $LATEST_VERSION"
-
-# Install Pulse v4 (Go version)
-msg_info "Installing Pulse"
 mkdir -p /opt/pulse
 cd /opt/pulse
 
-# Download universal package
 temp_file=$(mktemp)
 curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/${LATEST_VERSION}/pulse-${LATEST_VERSION}.tar.gz" -o "$temp_file"
 tar -xzf "$temp_file"
 rm -f "$temp_file"
 
-# Set version file for update script compatibility
 echo "${LATEST_VERSION#v}" >/opt/${APPLICATION}_version.txt
 
-# Run the installer
-if [ -f install.sh ]; then
-  bash install.sh
-else
-  msg_error "Installer not found in package"
-  exit 1
-fi
+bash install.sh
+msg_ok "Installed Pulse"
 
 motd_ssh
 customize

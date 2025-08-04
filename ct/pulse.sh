@@ -32,7 +32,6 @@ function update_script() {
     exit
   fi
   
-  # Get latest release info
   RELEASE_INFO=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest)
   LATEST_VERSION=$(echo "$RELEASE_INFO" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
   RELEASE="${LATEST_VERSION#v}"
@@ -45,23 +44,19 @@ function update_script() {
     msg_info "Updating Pulse to ${LATEST_VERSION}"
     temp_file=$(mktemp)
     
-    # Backup config if it exists
     if [ -d /opt/pulse/data ]; then
       cp -r /opt/pulse/data /tmp/pulse-data-backup
     fi
     
-    # Download and extract
     rm -rf /opt/pulse/*
     curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/${LATEST_VERSION}/pulse-${LATEST_VERSION}.tar.gz" -o "$temp_file"
     tar -xzf "$temp_file" -C /opt/pulse
     
-    # Restore config
     if [ -d /tmp/pulse-data-backup ]; then
       cp -r /tmp/pulse-data-backup /opt/pulse/data
       rm -rf /tmp/pulse-data-backup
     fi
     
-    # Run installer to update service if needed
     cd /opt/pulse
     if [ -f install.sh ]; then
       bash install.sh --update
