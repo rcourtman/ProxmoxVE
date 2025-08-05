@@ -31,26 +31,40 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  
+  RELEASE_INFO=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest)
+  LATEST_VERSION=$(echo "$RELEASE_INFO" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  RELEASE="${LATEST_VERSION#v}"
+  
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping ${APP}"
     systemctl stop pulse
     msg_ok "Stopped ${APP}"
 
-    msg_info "Updating Pulse"
+    msg_info "Updating Pulse to ${LATEST_VERSION}"
     temp_file=$(mktemp)
-    mkdir -p /opt/pulse
+    
+    if [ -d /opt/pulse/data ]; then
+      cp -r /opt/pulse/data /tmp/pulse-data-backup
+    fi
+    
     rm -rf /opt/pulse/*
-    curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/v${RELEASE}/pulse-v${RELEASE}.tar.gz" -o "$temp_file"
-    tar zxf "$temp_file" --strip-components=1 -C /opt/pulse
+    curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/${LATEST_VERSION}/pulse-${LATEST_VERSION}.tar.gz" -o "$temp_file"
+    tar -xzf "$temp_file" -C /opt/pulse
+    
+    if [ -d /tmp/pulse-data-backup ]; then
+      cp -r /tmp/pulse-data-backup /opt/pulse/data
+      rm -rf /tmp/pulse-data-backup
+    fi
+    
+    cd /opt/pulse
+    if [ -f install.sh ]; then
+      bash install.sh --update
+    fi
+    
+    rm -f "$temp_file"
     echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated Pulse to ${RELEASE}"
-
-    msg_info "Setting permissions for /opt/pulse..."
-    chown -R pulse:pulse "/opt/pulse"
-    find "/opt/pulse" -type d -exec chmod 755 {} \;
-    find "/opt/pulse" -type f -exec chmod 644 {} \;
-    msg_ok "Set permissions."
+    msg_ok "Updated Pulse to ${LATEST_VERSION}"
 
     msg_info "Starting ${APP}"
     systemctl start pulse
