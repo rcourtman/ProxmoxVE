@@ -62,7 +62,7 @@ RestartSec=3
 StandardOutput=journal
 StandardError=journal
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="PULSE_CONFIG_DIR=/etc/pulse"
+Environment="PULSE_DATA_DIR=/etc/pulse"
 
 [Install]
 WantedBy=multi-user.target
