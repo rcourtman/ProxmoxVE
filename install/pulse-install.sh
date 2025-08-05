@@ -28,11 +28,24 @@ else
   exit 1
 fi
 
-mkdir -p /var/lib/pulse /etc/pulse
-fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "*-linux-amd64.tar.gz"
-chown -R pulse:pulse /etc/pulse /var/lib/pulse/ /opt/pulse
+msg_info "Installing Pulse"
+mkdir -p /opt/pulse
+ARCH=$(dpkg --print-architecture)
+case $ARCH in
+  amd64) PULSE_ARCH="amd64" ;;
+  arm64) PULSE_ARCH="arm64" ;;
+  armhf) PULSE_ARCH="armv7" ;;
+  *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
 
-msg_info "Creating service"
+fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "pulse-*-linux-${PULSE_ARCH}.tar.gz"
+
+mkdir -p /etc/pulse
+echo "${LATEST_VERSION#v}" >/opt/${APPLICATION}_version.txt
+chown -R pulse:pulse /etc/pulse /opt/pulse
+msg_ok "Installed Pulse"
+
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/pulse.service
 [Unit]
 Description=Pulse Monitoring Server
@@ -49,19 +62,13 @@ RestartSec=3
 StandardOutput=journal
 StandardError=journal
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
-# Security hardening
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/opt/pulse /etc/pulse /var/lib/pulse
+Environment="PULSE_CONFIG_DIR=/etc/pulse"
 
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now pulse
-msg_ok "Service created"
+msg_ok "Created Service"
 
 motd_ssh
 customize
