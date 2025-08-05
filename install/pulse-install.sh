@@ -28,22 +28,40 @@ else
   exit 1
 fi
 
-msg_info "Installing Pulse"
-RELEASE_INFO=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest)
-LATEST_VERSION=$(echo "$RELEASE_INFO" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+mkdir -p /var/lib/pulse /etc/pulse
+fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "*-linux-amd64.tar.gz"
+chown -R pulse:pulse /etc/pulse /var/lib/pulse/ /opt/pulse
 
-mkdir -p /opt/pulse
-cd /opt/pulse
+msg_info "Creating service"
+cat <<EOF >/etc/systemd/system/pulse.service
+[Unit]
+Description=Pulse Monitoring Server
+After=network.target
 
-temp_file=$(mktemp)
-curl -fsSL "https://github.com/rcourtman/Pulse/releases/download/${LATEST_VERSION}/pulse-${LATEST_VERSION}.tar.gz" -o "$temp_file"
-tar -xzf "$temp_file"
-rm -f "$temp_file"
+[Service]
+Type=simple
+User=pulse
+Group=pulse
+WorkingDirectory=/opt/pulse
+ExecStart=/opt/pulse/pulse
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-echo "${LATEST_VERSION#v}" >/opt/${APPLICATION}_version.txt
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/pulse /etc/pulse /var/lib/pulse
 
-bash install.sh
-msg_ok "Installed Pulse"
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now pulse
+msg_ok "Service created"
 
 motd_ssh
 customize
