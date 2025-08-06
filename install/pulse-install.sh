@@ -30,6 +30,7 @@ fi
 
 fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "*-linux-amd64.tar.gz"
 chown -R pulse:pulse /etc/pulse /opt/pulse
+echo "$APPLICATION_VERSION" >~/.pulse
 msg_ok "Installed Pulse"
 
 msg_info "Creating Service"
