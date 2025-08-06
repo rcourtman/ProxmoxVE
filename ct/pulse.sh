@@ -23,35 +23,34 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ -d /opt/pulse-monitor ]]; then
-  msg_error "An old installation was detected. Please recreate the LXC from scratch (https://github.com/community-scripts/ProxmoxVE/pull/4848)"
-  exit 1
-  fi
   if [[ ! -d /opt/pulse ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  
-  msg_info "Stopping ${APP}"
-  systemctl stop pulse
-  msg_ok "Stopped ${APP}"
-  
-  ARCH=$(dpkg --print-architecture)
-  case $ARCH in
-    amd64) PULSE_ARCH="amd64" ;;
-    arm64) PULSE_ARCH="arm64" ;;
-    armhf) PULSE_ARCH="armv7" ;;
-    *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
-  esac
-  
-  fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "pulse-*-linux-${PULSE_ARCH}.tar.gz"
-  
-  msg_info "Starting ${APP}"
-  systemctl start pulse
-  msg_ok "Started ${APP}"
-  
-  msg_ok "Updated Successfully"
-  exit  
+
+  if [[ ! -f ~/.pulse ]]; then
+    msg_error "Old Installation Found! Please recreate the container due big changes in the software."
+    exit 1
+  fi
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+  if [[ "${RELEASE}" != "$(cat ~/.pulse 2>/dev/null)" ]] || [[ ! -f ~/.pulse ]]; then
+    msg_info "Stopping ${APP}"
+    systemctl stop pulse
+    msg_ok "Stopped ${APP}"
+
+    fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "*-linux-amd64.tar.gz"
+    chown -R pulse:pulse /etc/pulse /opt/pulse
+
+    msg_info "Starting ${APP}"
+    systemctl start pulse
+    msg_ok "Started ${APP}"
+
+    msg_ok "Updated Successfully"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
+  exit
 }
 
 start
