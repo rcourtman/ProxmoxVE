@@ -28,20 +28,7 @@ else
   exit 1
 fi
 
-msg_info "Installing Pulse"
-mkdir -p /opt/pulse
-ARCH=$(dpkg --print-architecture)
-case $ARCH in
-  amd64) PULSE_ARCH="amd64" ;;
-  arm64) PULSE_ARCH="arm64" ;;
-  armhf) PULSE_ARCH="armv7" ;;
-  *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
-
-fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "pulse-*-linux-${PULSE_ARCH}.tar.gz"
-
-mkdir -p /etc/pulse
-echo "${LATEST_VERSION#v}" >/opt/${APPLICATION}_version.txt
+fetch_and_deploy_gh_release "pulse" "rcourtman/Pulse" "prebuild" "latest" "/opt/pulse" "*-linux-amd64.tar.gz"
 chown -R pulse:pulse /etc/pulse /opt/pulse
 msg_ok "Installed Pulse"
 
